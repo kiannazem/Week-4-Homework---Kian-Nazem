@@ -1,0 +1,100 @@
+---
+title: "HWWEEK4"
+output: html_document
+date: "2024-10-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+library(readxl)
+library(forecast)
+library(tseries)
+library(TTR)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+```{r}
+CPI_Dataset_No_Description <- read_excel("~/Downloads/CPI - Dataset No Description.xlsx")
+inflation_long <- CPI_Dataset_No_Description %>%
+  pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "CPI")
+```
+```{r}
+inflation_long <- inflation_long %>%
+  mutate(Date = as.Date(paste(Year, match(Month, month.abb), "01", sep = "-"))) %>%
+  select(Date, CPI)
+```
+
+```{r}
+inflation_ts <- ts(inflation_long$CPI, start=c(2019, 1), frequency=12)
+inflation_ts <- na.omit(inflation_ts)
+naive_forecast <- naive(inflation_ts, h=12)
+plot(naive_forecast, main="Naive Forecast")
+```
+```{r}
+MA5_forecast <- ma(inflation_ts, order=5)
+plot(MA5_forecast, main="Moving Average (5) Forecast")
+```
+
+```{r}
+ets_forecast <- ets(inflation_ts)
+plot(forecast(ets_forecast, h=12), main="ETS Forecast")
+```
+```{r}
+hw_forecast <- HoltWinters(inflation_ts)
+plot(forecast(hw_forecast, h=12))
+```
+```{r}
+plot(naive_forecast, main="Comparison of Forecast Models")
+lines(forecast(ets_forecast)$mean, col="red")
+lines(forecast(hw_forecast)$mean, col="green")
+lines(MA5_forecast, col="blue")
+legend("topright", legend=c("Naive", "ETS", "Holt-Winters", "Moving Average"),
+       col=c("black", "red", "green", "blue"), lty=1)
+```
+
+```{r}
+accuracy_naive <- accuracy(naive_forecast)
+accuracy_ets <- accuracy(forecast(ets_forecast))
+accuracy_hw <- accuracy(forecast(hw_forecast))
+
+accuracy_naive
+accuracy_ets
+accuracy_hw
+```
+
+```{r}
+hw_forecast <- HoltWinters(inflation_ts)
+
+alpha_value <- hw_forecast$alpha
+beta_value <- hw_forecast$beta
+gamma_value <- hw_forecast$gamma
+
+alpha_value
+beta_value
+gamma_value
+
+```
+
